@@ -1,0 +1,94 @@
+import csv;
+from statsmodels.tsa.arima.model import ARIMA
+import pandas as pd
+import datetime
+import calendar
+
+
+# Constants
+s_supermarket = ['Верный', 'Вкусвилл', 'Лента', 'Пятёрочка', 'Ашан', 'Магнит', 'О’КЕЙ', 'Перекрёсток', 'СберМаркет', 'СберМегаМаркет', 'Слата', 'Гипермаркет Карусель', 'Мегамаркет', 'Магнит косметик', 'Золотое Яблоко', 'Улыбка радуги']
+s_onlineFuns  = ['PREMIER', 'ivi', 'more.tv', 'Movavi', 'Storytel', 'Megogo', 'Ozon', 'Smartreading', 'Smart Reading', 'VK Музыка', 'Онлайн школа Испаника', 'ИВИ', 'Иви в приложении Тинькофф', 'IVI в приложении Тинькофф', 'IVI от Тинькофф']
+s_clothes     = ['adidas', 'Marc & Andre', 'NEBBIA', 'Sisley-Paris', 'Etam', 'FUN&SUN', 'TEZENIS', 'TUI I FUN&SUN', 'COLINS', 'kari', 'Nappyclub', 'Respect', 'Zolla', 'Juicy Couture', 'Shopping live', 'Skypro', 'Yves Rocher']
+s_taxi        = ['Uber Russia', 'Яндекс Такси', 'Яндекс.Такси', 'Ситимобил', 'Такси Maxim']
+s_book        = ['Storytel', 'Читай-город', 'Интернет-магазин «Читай-город»', 'Интернет-магазин Читай-город']
+
+
+bigData = []
+with open('Merch_CB_hack.csv', encoding='utf-8') as csvfile:
+    csvreader = csv.reader(csvfile, delimiter = ",")
+    csvreader = list(csvreader)
+
+    nCompany = 0;
+
+    for i in range(0, len(csvreader)):
+      if (csvreader[i][1] == " интернет-магазин"):
+        csvreader[i][0] = "Reima; интернет магазин"
+        csvreader[i].remove(" интернет-магазин")
+      csvreader[i][1] = csvreader[i][1].replace(" 00:00:00", "")
+
+      if (i == 0):
+        csvreader[i].pop(2)
+        csvreader[i][2] = float(csvreader[i][2])
+        csvreader[i][1] = datetime.datetime.strptime(csvreader[i][1], "%Y-%m-%d")
+        bigData.append([])
+        bigData[0].append(csvreader[i])
+
+      else:
+        if (csvreader[i][0] == csvreader[i-1][0]):
+          csvreader[i].pop(2)
+          csvreader[i][2] = float(csvreader[i][2])
+          csvreader[i][1] = datetime.datetime.strptime(csvreader[i][1], "%Y-%m-%d")
+          bigData[nCompany].append(csvreader[i])
+
+        else:
+          csvreader[i].pop(2)
+          csvreader[i][2] = float(csvreader[i][2])
+          csvreader[i][1] = datetime.datetime.strptime(csvreader[i][1], "%Y-%m-%d")
+          bigData.append([])
+          nCompany += 1
+          bigData[nCompany].append(csvreader[i])
+
+
+    for row in bigData:
+      print(row)
+
+
+def GetIndexCompany(name):
+  for i in range(0, len(bigData)):
+    #print(i)
+    #print(bigData[i][0][0])
+    if (bigData[i][0][0] == name):
+      return i
+
+def GetArrOfNames(arrNames):
+  bigArray = []
+  for name in arrNames:
+    print(name)
+    a = bigData[GetIndexCompany(name)]
+    for row in a:
+      bigArray.append(row[1:])
+  return bigArray
+
+def DoFinalArr(s_name, name):
+  s_name.append(name)
+  return GetArrOfNames(s_name)
+
+def Model(finalArr, date):
+  finalArr.sort(key=lambda x: x[1])
+  b = len(finalArr)
+  
+  original_data = pd.DataFrame(finalArr)
+
+  print(original_data.head())
+  model = ARIMA(original_data, order=(1, 1, 1))
+  steps = 28 - date
+  forecast = model.forecast(steps)
+  return forecast
+
+
+
+#arr = GetArrOfNames(s_clothes)
+print(Model(DoFinalArr(s_clothes, '5КармаNов'), 10))   #2023-02-07 0:00:00
+
+
+#это код
